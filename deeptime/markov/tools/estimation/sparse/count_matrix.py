@@ -11,7 +11,8 @@ import scipy.sparse
 # count_matrix
 ################################################################################
 
-def count_matrix_coo2_mult(dtrajs, lag, sliding=True, sparse=True, nstates=None):
+def count_matrix_coo2_mult(dtrajs, lag, reweighting_factors=None,
+                           sliding=True, sparse=True, nstates=None):
     r"""Generate a count matrix from a given list discrete trajectories.
 
     The generated count matrix is a sparse matrix in compressed
@@ -23,6 +24,9 @@ def count_matrix_coo2_mult(dtrajs, lag, sliding=True, sparse=True, nstates=None)
         discrete trajectories
     lag : int
         Lagtime in trajectory steps
+    reweighting: tuple, optional
+        Enforce a count-matrix with reweighting factors shape=(g,M). g is the ... with dim=().
+        M is .. with dim=(). 
     sliding : bool, optional
         If true the sliding window approach
         is used for transition counting
@@ -60,10 +64,20 @@ def count_matrix_coo2_mult(dtrajs, lag, sliding=True, sparse=True, nstates=None)
     # feed into one COO matrix
     row = np.concatenate(rows)
     col = np.concatenate(cols)
-    data = np.ones(row.size)
+    ## choose option for including reweighting factors g and M
+    if reweighting_factors is None:
+        data = np.ones(row.size)
+    elif type(reweighting_factors) is tuple:
+        g, M = reweighting_factors
+        data = g * M
+    else:
+        raise NotImplementedError('An input format other than a tuple (g,M) for the reweighting factors is not implemented.')
+
     C = scipy.sparse.coo_matrix((data, (row, col)), shape=(nstates, nstates))
     # export to output format
     if sparse:
         return C.tocsr()
     else:
         return C.toarray()
+
+
